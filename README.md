@@ -5,7 +5,7 @@
 对 Thrift 文件进行格式化的工具。
 
 - Thrift PEG 定义使用的是 [cloudwego/thriftgo](https://github.com/cloudwego/thriftgo.git) 中的 [thrift.peg](https://github.com/cloudwego/thriftgo/blob/main/parser/thrift.peg)
-- `parser` 的实现基于 [cloudwego/thriftgo/parser](https://github.com/cloudwego/thriftgo/blob/main/parser/parser.go) 做了优化，能同时识别 位于顶部+尾部的 comment，这在一定程度上解决了**某一个 field 被注释后会被当成下一个 field 的注释**的让人费解的表现。具体效果可参考 `parser/parser_test.go#TestFieldReservedEndLineComment`
+- `parser` 的实现基于 [cloudwego/thriftgo/parser](https://github.com/cloudwego/thriftgo/blob/main/parser/parser.go) 做了优化，能同时识别 位于顶部+尾部的 comment，这在一定程度上解决了**某一个 field 被注释后会被当成下一个 field 的注释**的让人费解的表现。具体效果参考后文的效果展示。
 
 ## 安装
 
