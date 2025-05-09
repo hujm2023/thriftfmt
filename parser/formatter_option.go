@@ -1,15 +1,17 @@
 package parser
 
-// tabSize 默认缩进
+// tabSize specifies the default indentation size.
 var tabSize = 4
 
+// SetTabSize sets the global tab size for formatting.
 func SetTabSize(size int) {
 	tabSize = size
 }
 
-// patchRequired 是否需要给缺少 required/optional 的字段补充 required
+// patchRequired indicates whether to add 'required' to fields lacking 'required' or 'optional'.
 var patchRequired bool
 
+// SetPatchRequired sets whether to patch required/optional fields.
 func SetPatchRequired(required bool) {
 	patchRequired = required
 }
@@ -17,22 +19,25 @@ func SetPatchRequired(required bool) {
 var defaultDelimiter = ","
 
 var (
-	// structFieldDelimiter Struct Field 默认分隔符
+	// structFieldDelimiter specifies the default delimiter for struct fields.
 	structFieldDelimiter = defaultDelimiter
-	// defaultFieldDelimiter Service Function 默认分隔符
+	// serviceFieldDelimiter specifies the default delimiter for service function fields.
 	serviceFieldDelimiter = defaultDelimiter
-	// enumFieldDelimiter Enum Field 默认分隔符
+	// enumFieldDelimiter specifies the default delimiter for enum fields.
 	enumFieldDelimiter = defaultDelimiter
 )
 
+// SetStructDelimiter sets the delimiter for struct fields.
 func SetStructDelimiter(delimiter string) {
 	structFieldDelimiter = delimiter
 }
 
+// SetServiceDelimiter sets the delimiter for service function fields.
 func SetServiceDelimiter(delimiter string) {
 	serviceFieldDelimiter = delimiter
 }
 
+// SetEnumDelimiter sets the delimiter for enum fields.
 func SetEnumDelimiter(delimiter string) {
 	enumFieldDelimiter = delimiter
 }

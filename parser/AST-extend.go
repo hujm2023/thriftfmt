@@ -107,9 +107,7 @@ func (t *ConstValue) String() string {
 		var ss []string
 		ss = append(ss, "{")
 		for _, kv := range t.TypedValue.Map {
-			key := kv.Key.String()
-			val := kv.Value.String()
-			pair := key + ": " + val
+			pair := kv.Key.String() + ": " + kv.Value.String()
 			ss = append(ss, indent(pair, "  "))
 		}
 		ss = append(ss, "}")

@@ -28,6 +28,8 @@ const (
 	FormatTypeConstant          FormatType = "Constant"
 	FormatTypeTypedef           FormatType = "Typedef"
 	FormatTypeStructLike        FormatType = "StructLike"
+	FormatTypeUnion             FormatType = "Union"
+	FormatTypeException         FormatType = "Exception"
 )
 
 type ThriftFormatter interface {
@@ -65,10 +67,11 @@ func (f *EnumFormatter) value2Line(v *EnumValue) LineV2 {
 	return line
 }
 
+// FormatThrift formats the Enum to its Thrift representation.
 func (f *EnumFormatter) FormatThrift() string {
 	var b strings.Builder
 
-	// enum comment
+	// enum comment (if any)
 	if f.ReservedComments != "" {
 		b.WriteString(CommentForBigOne(f.GetReservedComments()))
 	}
@@ -77,7 +80,7 @@ func (f *EnumFormatter) FormatThrift() string {
 	b.WriteString("enum " + f.Enum.Name + " {")
 	b.WriteString("\n")
 
-	// body
+	// body: enum values
 	ls := make([]LineV2, 0, len(f.Values))
 	for idx := range f.Values {
 		ls = append(ls, f.value2Line(f.Values[idx]))
@@ -87,13 +90,14 @@ func (f *EnumFormatter) FormatThrift() string {
 	lns.lastHasSep = true
 	b.WriteString(lns.FormatThrift())
 
-	// foot
+	// foot: closing brace
 	b.WriteString("}")
 	b.WriteString("\n")
 
 	return b.String()
 }
 
+// Type returns the FormatType of the EnumFormatter.
 func (f *EnumFormatter) Type() FormatType {
 	return FormatTypeEnum
 }
@@ -105,11 +109,12 @@ type TypedefFormatter struct {
 	Typedef
 }
 
+// FormatThrift formats the Typedef to its Thrift representation.
 func (f *TypedefFormatter) FormatThrift() string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
 
-	// typedef 的注释只能写在定义上面
+	// typedef comments can only be placed above the definition
 	if f.ReservedComments != "" {
 		b.WriteString(CommentForBigOne(f.GetReservedComments()))
 	}
@@ -122,6 +127,7 @@ func (f *TypedefFormatter) FormatThrift() string {
 	return b.String()
 }
 
+// Type returns the FormatType of the TypedefFormatter.
 func (f *TypedefFormatter) Type() FormatType {
 	return FormatTypeTypedef
 }
@@ -130,37 +136,12 @@ type StructLikeFormatter struct {
 	StructLike
 }
 
+// FormatThrift formats the StructLike (struct, union, exception) to its Thrift representation.
 func (f *StructLikeFormatter) FormatThrift() string {
-	b := bytebufferpool.Get()
-	defer bytebufferpool.Put(b)
-
-	// struct comment
-	if f.GetReservedComments() != "" {
-		b.WriteString(CommentForBigOne(f.GetReservedComments()))
-	}
-
-	// header
-	b.WriteString(f.GetCategory() + " " + f.Name + " {")
-	b.WriteString("\n")
-
-	// body
-	ls := make([]LineV2, 0, len(f.GetFields()))
-	for _, ff := range f.GetFields() {
-		ls = append(ls, field2Line(ff))
-	}
-	lns := NewLinesV2(tabSize, "\n", structFieldDelimiter, ls...)
-	lns.lastHasSep = true
-	lns.lastHasDelimiter = true
-
-	b.WriteString(lns.FormatThrift())
-
-	// foot
-	b.WriteString("}")
-	b.WriteString("\n")
-
-	return b.String()
+	return FormatStructLike(f.StructLike)
 }
 
+// Type returns the FormatType of the StructLikeFormatter.
 func (f *StructLikeFormatter) Type() FormatType {
 	return FormatTypeStructLike
 }
@@ -172,11 +153,12 @@ type ConstantFormatter struct {
 	Constant
 }
 
+// FormatThrift formats the Constant to its Thrift representation.
 func (f *ConstantFormatter) FormatThrift() string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
 
-	// constant 的注释只能写在定义上面
+	// constant comments can only be placed above the definition
 	if f.ReservedComments != "" {
 		b.WriteString(CommentForBigOne(f.GetReservedComments()))
 	}
@@ -186,6 +168,7 @@ func (f *ConstantFormatter) FormatThrift() string {
 	return b.String()
 }
 
+// Type returns the FormatType of the ConstantFormatter.
 func (f *ConstantFormatter) Type() FormatType {
 	return FormatTypeConstant
 }
@@ -197,6 +180,7 @@ type IncludeFormatter struct {
 	Include
 }
 
+// FormatThrift formats the Include directive to its Thrift representation.
 func (f *IncludeFormatter) FormatThrift() string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
@@ -204,6 +188,7 @@ func (f *IncludeFormatter) FormatThrift() string {
 	return b.String()
 }
 
+// Type returns the FormatType of the IncludeFormatter.
 func (f *IncludeFormatter) Type() FormatType {
 	return FormatTypeInclude
 }
@@ -215,6 +200,7 @@ type CppIncludeFormatter struct {
 	cppInclude string
 }
 
+// FormatThrift formats the CppInclude directive to its Thrift representation.
 func (c CppIncludeFormatter) FormatThrift() string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
@@ -222,6 +208,7 @@ func (c CppIncludeFormatter) FormatThrift() string {
 	return b.String()
 }
 
+// Type returns the FormatType of the CppIncludeFormatter.
 func (c CppIncludeFormatter) Type() FormatType {
 	return FormatTypeCppIncludeInclude
 }
@@ -233,6 +220,7 @@ type NamespaceFormatter struct {
 	Namespace
 }
 
+// FormatThrift formats the Namespace directive to its Thrift representation.
 func (f *NamespaceFormatter) FormatThrift() string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
@@ -244,6 +232,7 @@ func (f *NamespaceFormatter) FormatThrift() string {
 	return b.String()
 }
 
+// Type returns the FormatType of the NamespaceFormatter.
 func (f *NamespaceFormatter) Type() FormatType {
 	return FormatTypeNamespace
 }
@@ -257,16 +246,17 @@ type ServiceFormatter struct {
 	Service
 }
 
+// FormatThrift formats the Service to its Thrift representation.
 func (f *ServiceFormatter) FormatThrift() string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
-	// comment
+	// service comment (if any)
 	if f.ReservedComments != "" {
 		b.WriteString(CommentForBigOne(f.GetReservedComments()))
 	}
-	// -- header --
+	// -- header: service definition --
 	b.WriteString("service " + f.GetName())
-	// extends
+	// extends (if any)
 	if f.GetExtends() != "" {
 		b.WriteString(" extends " + f.GetExtends())
 	}
@@ -276,7 +266,7 @@ func (f *ServiceFormatter) FormatThrift() string {
 	// functions
 	b.WriteString(FormatFunctions(f.GetFunctions()))
 
-	// -- footer --
+	// -- footer: closing brace and annotations --
 	b.WriteString("}")
 	if len(f.GetAnnotations()) > 0 {
 		WriteAnnotations(f.GetAnnotations(), b)
@@ -286,6 +276,43 @@ func (f *ServiceFormatter) FormatThrift() string {
 	return b.String()
 }
 
+// Type returns the FormatType of the ServiceFormatter.
 func (f *ServiceFormatter) Type() FormatType {
 	return FormatTypeService
+}
+
+type UnionFormatter struct {
+	/*
+		Union <- UNION Identifier { Field* }
+	*/
+	StructLike
+}
+
+// FormatThrift formats the Union to its Thrift representation.
+// It utilizes the common FormatStructLike function.
+func (f *UnionFormatter) FormatThrift() string {
+	return FormatStructLike(f.StructLike)
+}
+
+// Type returns the FormatType of the UnionFormatter.
+func (f *UnionFormatter) Type() FormatType {
+	return FormatTypeUnion
+}
+
+type ExceptionFormatter struct {
+	/*
+		Exception <- EXCEPTION Identifier { Field* }
+	*/
+	StructLike
+}
+
+// FormatThrift formats the Exception to its Thrift representation.
+// It utilizes the common FormatStructLike function.
+func (e ExceptionFormatter) FormatThrift() string {
+	return FormatStructLike(e.StructLike)
+}
+
+// Type returns the FormatType of the ExceptionFormatter.
+func (e ExceptionFormatter) Type() FormatType {
+	return FormatTypeException
 }
