@@ -2,6 +2,24 @@
 
 # thriftfmt
 
+**thriftfmt** is a command-line tool for formatting [Apache Thrift](https://thrift.apache.org/) files.  
+It provides consistent, customizable, and readable formatting for Thrift IDL files, making code reviews and collaboration easier.
+
+## Features
+
+- **Automatic Formatting:** Standardizes indentation, field delimiters, and comment placement for Thrift files.
+- **Comment Awareness:** Correctly associates comments with the right fields, supporting both leading and trailing comments.
+- **Customizable:** Supports options for indentation, field delimiters, and required field patching.
+- **Batch Processing:** Can recursively format all Thrift files in a directory.
+- **IDE Integration:** Easily integrates with Goland and VS Code for seamless formatting on save.
+- **Based on [cloudwego/thriftgo](https://github.com/cloudwego/thriftgo):** Uses a robust PEG grammar and parser foundation.
+
+## Why Use thriftfmt?
+
+- Ensures consistent Thrift file style across teams and projects.
+- Reduces merge conflicts and improves code readability.
+- Saves time on manual formatting and code review discussions.
+
 对 Thrift 文件进行格式化的工具。
 
 - Thrift PEG 定义使用的是 [cloudwego/thriftgo](https://github.com/cloudwego/thriftgo.git) 中的 [thrift.peg](https://github.com/cloudwego/thriftgo/blob/main/parser/thrift.peg)
