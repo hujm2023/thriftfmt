@@ -719,6 +719,7 @@ func (p *parser) parseUnion(node *node32) (err error) {
 	u := &StructLike{Category: "union", Name: name, Fields: fields}
 	u.ReservedComments = p.DefinitionReservedComment
 	p.Unions = append(p.Unions, u)
+	p.AllElems = append(p.AllElems, &UnionFormatter{*u})
 	p.Annotations = &u.Annotations
 	return nil
 }
@@ -787,6 +788,7 @@ func (p *parser) parseException(node *node32) (err error) {
 	e := &StructLike{Category: "exception", Name: name, Fields: fields}
 	e.ReservedComments = p.DefinitionReservedComment
 	p.Exceptions = append(p.Exceptions, e)
+	p.AllElems = append(p.AllElems, &StructLikeFormatter{*e})
 	p.Annotations = &e.Annotations
 	return nil
 }

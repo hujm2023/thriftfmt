@@ -22,7 +22,7 @@ var (
 	serviceFieldDelimiter = pflag.StringP("serviceFieldDelimiter", "f", ",", "delimiter for service fields.")
 )
 
-func main() {
+func initFlags() {
 	if len(os.Args) <= 1 {
 		fmt.Println("filePath is required")
 		os.Exit(1)
@@ -34,62 +34,65 @@ func main() {
 	parser.SetEnumDelimiter(*enumFieldDelimiter)
 	parser.SetStructDelimiter(*structFieldDelimiter)
 	parser.SetServiceDelimiter(*serviceFieldDelimiter)
+}
+
+func handleError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func main() {
+	initFlags()
 
 	filePath := os.Args[1]
 	absPath, err := filepath.Abs(filePath)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	handleError(err)
 
 	stat, err := os.Stat(absPath)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	handleError(err)
 
-	// if the path is dir, overwrite will be set to true
 	if stat.IsDir() {
-		err = filepath.Walk(absPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if !strings.HasSuffix(info.Name(), ".thrift") {
-				return nil
-			}
-
-			return processFile(path, true)
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
+		err = processDirectory(absPath)
 	} else {
-		if err = processFile(filePath, *overwrite); err != nil {
-			log.Fatal(err)
-			return
-		}
+		err = processFile(filePath, *overwrite)
 	}
+	handleError(err)
 
 	fmt.Printf("%s format finished!\n", absPath)
 }
 
+func processDirectory(dirPath string) error {
+	return filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !strings.HasSuffix(info.Name(), ".thrift") {
+			return nil
+		}
+
+		return processFile(path, true)
+	})
+}
+
 func processFile(filePath string, ow bool) error {
-	print("processing file %s\n", filePath)
+	debugPrint("processing file %s\n", filePath)
 	formatted, err := doFormat(filePath)
 	if err != nil {
 		return err
 	}
+
 	if ow {
-		ff, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+		outputFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 		if err != nil {
 			return err
 		}
-		defer ff.Close()
-		_, _ = ff.WriteString(formatted)
-		print("!!file %s overwritten!!\n", filePath)
+		defer outputFile.Close()
+		_, _ = outputFile.WriteString(formatted)
+		debugPrint("!!file %s overwritten!!\n", filePath)
 	} else {
-		print("!file %s parsed!\n", filePath)
+		debugPrint("!file %s parsed!\n", filePath)
 		fmt.Println(formatted)
 	}
 	return nil
@@ -105,8 +108,8 @@ func doFormat(filePath string) (string, error) {
 	return parser.FormatInline(tr), nil
 }
 
-func print(fotmat string, args ...interface{}) {
+func debugPrint(format string, args ...interface{}) {
 	if *verbose {
-		fmt.Printf(fotmat, args...)
+		fmt.Printf(format, args...)
 	}
 }

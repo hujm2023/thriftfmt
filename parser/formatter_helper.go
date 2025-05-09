@@ -49,11 +49,11 @@ func (c Comment) FormatThrift() string {
 	return head + " " + content
 }
 
-// LineV2 表示“一行”
-// 比如 `1: string name, // this is name`，其中
+// LineV2 represents a single line in Thrift format
+// For example `1: string name, // this is name` where:
 //
-//	define="1: string name",
-//	comment="// this is name"
+//	define="1: string name" - the field definition
+//	comment="// this is name" - the trailing comment
 type LineV2 struct {
 	Define      string
 	TailComment string
@@ -62,13 +62,13 @@ type LineV2 struct {
 
 type LinesV2 struct {
 	lines            []LineV2
-	tabSize          int    // 前导空格个数
-	sep              string // 换行符 '\n' 或 ''(不需要换行)
-	lastHasSep       bool   // 最后一个元素是否需要换行符
-	delimiter        string // 结尾符 ',' 或 ';'
-	lastHasDelimiter bool   // 最后一个元素是否需要结尾符
+	tabSize          int    // number of leading spaces
+	sep              string // line separator '\n' or '' (no separator)
+	lastHasSep       bool   // whether last element needs separator
+	delimiter        string // delimiter ',' or ';'
+	lastHasDelimiter bool   // whether last element needs delimiter
 
-	addEmptyLineEachLine bool // 多个line之间是否要用空行
+	addEmptyLineEachLine bool // whether to add empty lines between elements
 }
 
 func NewLinesV2(tabSize int, sep string, delimiter string, lines ...LineV2) *LinesV2 {
@@ -101,23 +101,23 @@ func (l *LinesV2) FormatThrift() string {
 	mf := l.maxDefine()
 
 	for idx, line := range l.lines {
-		// 头部comment
+		// Header comment
 		if line.HeadComment != "" {
 			if isLongComment(line.HeadComment) {
 				b.WriteString(l.sep)
 				b.WriteString(strings.Repeat(" ", l.tabSize))
 				b.WriteString(line.HeadComment)
 			} else {
-				// 可能的场景：单独的lineComment; longComment和lineComment混合
+				// Possible scenarios: standalone lineComment; mixed longComment and lineComment
 				temp := strings.Split(line.HeadComment, commentSplitter)
-				// 如果是多行comment，开头强制多加一行
+				// For multi-line comments, force adding an extra line at the beginning
 				needAddHeadLine := len(temp) > 1 && idx != 0
 				if needAddHeadLine {
 					b.WriteString("\n")
 				}
-				// t 都是以\n结尾的
+				// t always ends with \n
 				for _, t := range temp {
-					// longComment，开头强制多加一行
+					// For longComment, force adding an extra line at the beginning
 					if isLongComment(t) && !needAddHeadLine && idx != 0 {
 						b.WriteString("\n")
 					}
@@ -125,36 +125,36 @@ func (l *LinesV2) FormatThrift() string {
 						b.WriteString("\n")
 						continue
 					}
-					// 缩进
+					// Indentation
 					if l.tabSize > 0 {
 						b.WriteString(strings.Repeat(" ", l.tabSize))
 					}
-					// comment 归一
+					// Normalize comments
 					b.WriteString(Comment(t).FormatThrift())
 				}
 			}
 		}
 
-		// 写 define
+		// Write define
 		if l.tabSize > 0 {
 			b.WriteString(strings.Repeat(" ", l.tabSize))
 		}
 		b.WriteString(line.Define)
 
-		// 结尾符
+		// Delimiter
 		if l.delimiter != "" {
 			if (l.isLast(idx) && l.lastHasDelimiter) || !l.isLast(idx) {
 				b.WriteString(l.delimiter)
 			}
 		}
 
-		// 写 tailComment
+		// Write tailComment
 		if line.TailComment != "" {
 			b.WriteString(strings.Repeat(" ", mf-len(line.Define)))
 			b.WriteString(line.TailComment)
 		}
 
-		// 换行
+		// Line break
 		if l.isLast(idx) {
 			if l.lastHasSep {
 				b.WriteString(l.sep)
@@ -163,7 +163,7 @@ func (l *LinesV2) FormatThrift() string {
 			b.WriteString(l.sep)
 		}
 
-		// 多个line之间是否加空行
+		// Whether to add empty lines between multiple lines
 		if l.addEmptyLineEachLine {
 			b.WriteString("\n")
 		}
@@ -176,9 +176,9 @@ func CommentForBigOne(s string) string {
 	b := bytebufferpool.Get()
 	defer bytebufferpool.Put(b)
 
-	// 可能的场景：单独的lineComment; longComment和lineComment混合
+	// Possible scenarios: standalone lineComment; mixed longComment and lineComment
 	temp := strings.Split(s, commentSplitter)
-	// t 都是以\n结尾的
+	// t always ends with \n
 	for _, t := range temp {
 		// longComment，强制换行
 		// if isLongComment(t) {
@@ -303,7 +303,7 @@ func WriteAnnotations(ans Annotations, s io.StringWriter) {
 			for i := 0; i < len(an.GetValues()); i++ {
 				_, _ = s.WriteString(an.GetKey())
 				_, _ = s.WriteString(" = ")
-				_, _ = s.WriteString("\"" + an.GetValues()[i] + "\"")
+				_, _ = s.WriteString(fmt.Sprintf("%q", an.GetValues()[i]))
 				if j != len(ans)-1 || i != len(an.GetValues())-1 {
 					_, _ = s.WriteString(", ")
 				}
@@ -417,6 +417,37 @@ func FormatInline(fs []ThriftFormatter) string {
 
 	// at most 1 empty line at the end
 	return strings.TrimRight(b.String(), "\n") + "\n"
+}
+
+func FormatStructLike(f StructLike) string {
+	b := bytebufferpool.Get()
+	defer bytebufferpool.Put(b)
+
+	// struct comment
+	if f.GetReservedComments() != "" {
+		b.WriteString(CommentForBigOne(f.GetReservedComments()))
+	}
+
+	// header
+	b.WriteString(f.GetCategory() + " " + f.Name + " {")
+	b.WriteString("\n")
+
+	// body
+	ls := make([]LineV2, 0, len(f.GetFields()))
+	for _, ff := range f.GetFields() {
+		ls = append(ls, field2Line(ff))
+	}
+	lns := NewLinesV2(tabSize, "\n", structFieldDelimiter, ls...)
+	lns.lastHasSep = true
+	lns.lastHasDelimiter = true
+
+	b.WriteString(lns.FormatThrift())
+
+	// foot
+	b.WriteString("}")
+	b.WriteString("\n")
+
+	return b.String()
 }
 
 func isComment(s string) bool {
